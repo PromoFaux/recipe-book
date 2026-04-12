@@ -26,11 +26,12 @@ export async function POST(req: NextRequest) {
   const filename = `${randomUUID()}.jpg`;
 
   // Compress & resize with Sharp
-  const data = await sharp(buffer)
+  const sharpResult = await sharp(buffer)
     .rotate() // auto-rotate from EXIF
     .resize(MAX_DIMENSION, MAX_DIMENSION, { fit: "inside", withoutEnlargement: true })
     .jpeg({ quality: JPEG_QUALITY, progressive: true })
     .toBuffer();
+  const data = Buffer.from(sharpResult);
 
   const count = await db.photo.count({ where: { recipeId } });
 

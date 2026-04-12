@@ -5,7 +5,7 @@ import { createReadStream } from "fs";
 import { join } from "path";
 import { stat } from "fs/promises";
 
-const DB_PATH = process.env.DATABASE_URL?.replace("file:", "") ?? join(process.cwd(), "data", "recipes.db");
+const DB_PATH = process.env.DATABASE_URL?.replace("file:", "") ?? join(/*turbopackIgnore: true*/ process.cwd(), "data", "recipes.db");
 const DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_BACKUP_FOLDER_ID;
 
 export async function POST() {

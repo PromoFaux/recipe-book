@@ -10,7 +10,23 @@ permissions:
   contents: read
 
 jobs:
+  typecheck:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+        env:
+          DATABASE_URL: file:./data/recipes.db
+      - run: npx tsc --noEmit
+
   prepare:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.lower.outputs.image }}

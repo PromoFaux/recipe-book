@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  serverExternalPackages: ["sharp", "@prisma/client", "prisma"],
+  serverExternalPackages: ["sharp", "@prisma/client", "prisma", "@prisma/adapter-libsql", "@libsql/client"],
   images: {
     // Photos are served through our authenticated /uploads route handler,
     // so no remote patterns needed here.
