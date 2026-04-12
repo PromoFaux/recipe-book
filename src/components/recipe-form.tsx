@@ -401,6 +401,7 @@ export function RecipeForm({
                     src={`/uploads/${photo.recipeId}/${photo.filename}`}
                     alt="Recipe photo"
                     fill
+                    unoptimized
                     className="object-cover"
                     sizes="150px"
                   />

@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
 import sharp from "sharp";
 import { randomUUID } from "crypto";
 
-const UPLOADS_DIR = process.env.UPLOADS_DIR ?? join(process.cwd(), "data", "uploads");
 const MAX_DIMENSION = 1600; // px
 const JPEG_QUALITY = 82;
 
@@ -27,24 +24,21 @@ export async function POST(req: NextRequest) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const filename = `${randomUUID()}.jpg`;
-  const dir = join(UPLOADS_DIR, recipeId);
-
-  await mkdir(dir, { recursive: true });
 
   // Compress & resize with Sharp
-  await sharp(buffer)
+  const data = await sharp(buffer)
     .rotate() // auto-rotate from EXIF
     .resize(MAX_DIMENSION, MAX_DIMENSION, { fit: "inside", withoutEnlargement: true })
     .jpeg({ quality: JPEG_QUALITY, progressive: true })
-    .toFile(join(dir, filename));
+    .toBuffer();
 
   const count = await db.photo.count({ where: { recipeId } });
 
   const photo = await db.photo.create({
-    data: { filename, recipeId, order: count },
+    data: { filename, data, recipeId, order: count },
   });
 
-  return NextResponse.json({ id: photo.id, filename, url: `/uploads/${recipeId}/${filename}` });
+  return NextResponse.json({ id: photo.id, filename, recipeId, url: `/uploads/${recipeId}/${filename}` });
 }
 
 export async function DELETE(req: NextRequest) {
@@ -57,13 +51,6 @@ export async function DELETE(req: NextRequest) {
 
   const photo = await db.photo.findUnique({ where: { id: photoId } });
   if (!photo) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  const { unlink } = await import("fs/promises");
-  try {
-    await unlink(join(UPLOADS_DIR, photo.recipeId, photo.filename));
-  } catch {
-    // File may already be gone — not a hard error
-  }
 
   await db.photo.delete({ where: { id: photoId } });
   return new NextResponse(null, { status: 204 });

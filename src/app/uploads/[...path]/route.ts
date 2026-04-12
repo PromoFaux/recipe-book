@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { readFile } from "fs/promises";
-import { join } from "path";
-
-const UPLOADS_DIR = process.env.UPLOADS_DIR ?? join(process.cwd(), "data", "uploads");
+import { db } from "@/lib/db";
 
 export async function GET(
   _req: NextRequest,
@@ -13,18 +10,21 @@ export async function GET(
   if (!session?.user?.id) return new NextResponse("Unauthorized", { status: 401 });
 
   const { path } = await params;
-  const safePath = path.map((p) => p.replace(/\.\./g, "")).join("/");
-  const filePath = join(UPLOADS_DIR, safePath);
+  if (path.length < 2) return new NextResponse("Not found", { status: 404 });
 
-  try {
-    const buffer = await readFile(filePath);
-    return new NextResponse(buffer, {
-      headers: {
-        "Content-Type": "image/jpeg",
-        "Cache-Control": "private, max-age=31536000, immutable",
-      },
-    });
-  } catch {
-    return new NextResponse("Not found", { status: 404 });
-  }
+  const [recipeId, filename] = path;
+
+  const photo = await db.photo.findFirst({
+    where: { recipeId, filename },
+    select: { data: true },
+  });
+
+  if (!photo?.data) return new NextResponse("Not found", { status: 404 });
+
+  return new NextResponse(new Uint8Array(photo.data), {
+    headers: {
+      "Content-Type": "image/jpeg",
+      "Cache-Control": "private, max-age=31536000, immutable",
+    },
+  });
 }
