@@ -21,7 +21,7 @@ export async function GET(
 
   if (!photo?.data) return new NextResponse("Not found", { status: 404 });
 
-  return new NextResponse(photo.data, {
+  return new NextResponse(new Uint8Array(photo.data), {
     headers: {
       "Content-Type": "image/jpeg",
       "Cache-Control": "private, max-age=31536000, immutable",
