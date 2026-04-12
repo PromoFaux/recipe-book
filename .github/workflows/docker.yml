@@ -29,15 +29,20 @@ jobs:
       id-token: write
       packages: write
     with:
+      setup-qemu: true
+      cache: true
+      cache-scope: build
+      fail-fast: true
       output: image
       push: ${{ github.event_name != 'pull_request' }}
-      platforms: linux/amd64,linux/arm64
-      cache: true
+      platforms: linux/amd64,linux/arm64      
       meta-images: ${{ needs.prepare.outputs.image }}
       meta-tags: |
         type=raw,value=latest,enable={{is_default_branch}}
         type=sha,prefix=sha-
         type=ref,event=branch
+      # FIXME: GHCR does not support the referrers API and spams the registry with sha-tagged images when cosigned: https://github.com/docker/github-builder/issues/109
+      sign: false
     secrets:
       registry-auths: |
         - registry: ghcr.io
