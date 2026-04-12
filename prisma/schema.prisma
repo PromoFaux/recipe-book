@@ -106,6 +106,7 @@ model TagsOnRecipes {
 model Photo {
   id        String   @id @default(cuid())
   filename  String
+  data      Bytes?
   recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   recipeId  String
   order     Int      @default(0)

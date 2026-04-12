@@ -56,6 +56,7 @@ export default async function RecipePage({ params }: PageProps) {
             src={`/uploads/${recipe.photos[0].recipeId}/${recipe.photos[0].filename}`}
             alt={recipe.title}
             fill
+            unoptimized
             className="object-cover"
             priority
             sizes="(max-width: 672px) 100vw, 672px"
@@ -72,6 +73,7 @@ export default async function RecipePage({ params }: PageProps) {
                 src={`/uploads/${photo.recipeId}/${photo.filename}`}
                 alt={recipe.title}
                 fill
+                unoptimized
                 className="object-cover"
                 sizes="120px"
               />

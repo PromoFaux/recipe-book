@@ -6,13 +6,12 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Host-mount a directory for persistent data (SQLite DB + uploaded photos).
+      # Host-mount a directory for persistent data (SQLite DB — contains everything including photos).
       # Change the left-hand path to wherever you want data stored on your host.
       # e.g. Portainer: /opt/recipe-book/data:/app/data
       - /opt/recipe-book/data:/app/data
     environment:
       DATABASE_URL: "file:/app/data/recipes.db"
-      UPLOADS_DIR: "/app/data/uploads"
 
       # Generate: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
       AUTH_SECRET: "${AUTH_SECRET}"
