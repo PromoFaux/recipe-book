@@ -48,3 +48,13 @@ jobs:
         - registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Portainer Service Webhook
+        uses: newarifrh/portainer-service-webhook@v1
+        with:
+          webhook_url: ${{ secrets.PORTAINER_WEBHOOK_URL }}
