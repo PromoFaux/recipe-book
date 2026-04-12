@@ -6,7 +6,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Host-mount a directory for persistent data (SQLite DB — contains everything including photos).
+      # Host-mount a directory for persistent data.
+      # Contains the SQLite DB (recipes.db) and uploaded photos (uploads/).
+      # Both are included when using the "Backup to Google Drive" feature.
       # Change the left-hand path to wherever you want data stored on your host.
       # e.g. Portainer: /opt/recipe-book/data:/app/data
       - /opt/recipe-book/data:/app/data

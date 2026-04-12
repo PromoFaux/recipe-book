@@ -2,7 +2,7 @@
 FROM node:20-alpine AS base
 
 # Install dependencies for sharp and prisma
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat openssl tar
 
 WORKDIR /app
 
