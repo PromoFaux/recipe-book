@@ -52,6 +52,8 @@ interface RecipeFormProps {
   allTags?: string[];
   mode: "create" | "edit";
   initialImportUrl?: string;
+  initialImportText?: string;
+  initialImportTitle?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -64,6 +66,8 @@ export function RecipeForm({
   allTags = [],
   mode,
   initialImportUrl = "",
+  initialImportText = "",
+  initialImportTitle = "",
 }: RecipeFormProps) {
   const router = useRouter();
   const [scrapeOpen, setScrapeOpen] = useState(false);
@@ -100,6 +104,11 @@ export function RecipeForm({
     useFieldArray({ control, name: "instructions" });
 
   const tags = watch("tags");
+
+  const getFirstUrlFromText = useCallback((value: string) => {
+    const match = value.match(/https?:\/\/[^\s]+/i);
+    return match?.[0] ?? "";
+  }, []);
 
   // -------------------------------------------------------------------------
   // Photo upload
@@ -172,7 +181,10 @@ export function RecipeForm({
 
   useEffect(() => {
     const importFromSharedUrl = async () => {
-      const url = initialImportUrl.trim();
+      const directUrl = initialImportUrl.trim();
+      const textUrl = getFirstUrlFromText(initialImportText.trim());
+      const titleUrl = getFirstUrlFromText(initialImportTitle.trim());
+      const url = directUrl || textUrl || titleUrl;
       if (!url || mode !== "create" || didAutoImportRef.current) return;
       didAutoImportRef.current = true;
       setValue("sourceUrl", url);
@@ -205,7 +217,7 @@ export function RecipeForm({
     };
 
     void importFromSharedUrl();
-  }, [initialImportUrl, mode, setValue]);
+  }, [getFirstUrlFromText, initialImportText, initialImportTitle, initialImportUrl, mode, setValue]);
 
   // -------------------------------------------------------------------------
   // Submit

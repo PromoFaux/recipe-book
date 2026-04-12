@@ -2,11 +2,15 @@ import { RecipeForm } from "@/components/recipe-form";
 import { db } from "@/lib/db";
 
 interface NewRecipePageProps {
-  searchParams: Promise<{ share_url?: string }>;
+  searchParams: Promise<{
+    share_url?: string;
+    share_text?: string;
+    share_title?: string;
+  }>;
 }
 
 export default async function NewRecipePage({ searchParams }: NewRecipePageProps) {
-  const { share_url = "" } = await searchParams;
+  const { share_url = "", share_text = "", share_title = "" } = await searchParams;
   const allTags = await db.tag.findMany({ orderBy: { name: "asc" } });
 
   return (
@@ -16,6 +20,8 @@ export default async function NewRecipePage({ searchParams }: NewRecipePageProps
         mode="create"
         allTags={allTags.map((t) => t.name)}
         initialImportUrl={share_url}
+        initialImportText={share_text}
+        initialImportTitle={share_title}
       />
     </div>
   );
