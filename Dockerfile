@@ -39,10 +39,12 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Copy Prisma schema and engine for migrations at startup
+# Copy Prisma schema, engine, and CLI for db push at startup
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Copy the Prisma CLI itself (devDep, not included in standalone output)
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
 # Startup script
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
