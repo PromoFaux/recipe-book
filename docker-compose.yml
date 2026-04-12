@@ -1,0 +1,37 @@
+services:
+  recipe-book:
+    image: ghcr.io/promofaux/recipe-book:latest
+    container_name: recipe-book
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Host-mount a directory for persistent data (SQLite DB + uploaded photos).
+      # Change the left-hand path to wherever you want data stored on your host.
+      # e.g. Portainer: /opt/recipe-book/data:/app/data
+      - /opt/recipe-book/data:/app/data
+    environment:
+      DATABASE_URL: "file:/app/data/recipes.db"
+      UPLOADS_DIR: "/app/data/uploads"
+
+      # Generate: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+      AUTH_SECRET: "${AUTH_SECRET}"
+
+      # From GCP Console — redirect URI must be: {AUTH_URL}/api/auth/callback/google
+      AUTH_URL: "${AUTH_URL:-http://localhost:3000}"
+      AUTH_GOOGLE_ID: "${AUTH_GOOGLE_ID}"
+      AUTH_GOOGLE_SECRET: "${AUTH_GOOGLE_SECRET}"
+
+      # Comma-separated list of allowed Google accounts
+      ALLOWED_EMAILS: "${ALLOWED_EMAILS}"
+
+      # Optional — needed only for Drive backup
+      GOOGLE_DRIVE_BACKUP_FOLDER_ID: "${GOOGLE_DRIVE_BACKUP_FOLDER_ID:-}"
+      GOOGLE_SERVICE_ACCOUNT_KEY: "${GOOGLE_SERVICE_ACCOUNT_KEY:-}"
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/auth/providers"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
