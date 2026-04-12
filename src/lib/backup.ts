@@ -6,13 +6,13 @@ import {
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
 import { createWriteStream } from "fs";
-import { mkdir, readFile, rename, rm, stat, unlink } from "fs/promises";
-import { basename, dirname, join } from "path";
+import { mkdir, readFile, rm, stat, unlink } from "fs/promises";
+import { join } from "path";
 import { tmpdir } from "os";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { db } from "@/lib/db";
-import { DATA_DIR } from "@/lib/paths";
+import { DATA_DIR, UPLOADS_DIR } from "@/lib/paths";
 
 const execFileAsync = promisify(execFile);
 
@@ -44,6 +44,41 @@ async function streamToFile(stream: NodeJS.ReadableStream, filePath: string): Pr
     output.on("error", reject);
     output.on("finish", () => resolve());
   });
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function retryOperation<T>(operation: () => Promise<T>, retries = 5, waitMs = 150): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < retries; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries - 1) {
+        await delay(waitMs * (attempt + 1));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+async function createLocalArchive(archivePath: string) {
+  await execFileAsync("tar", ["czf", archivePath, "-C", DATA_DIR, "."]);
+}
+
+async function clearDataDir() {
+  await mkdir(DATA_DIR, { recursive: true });
+
+  await retryOperation(() => rm(UPLOADS_DIR, { recursive: true, force: true }));
+  await retryOperation(() => rm(join(DATA_DIR, "recipes.db"), { force: true }));
+  await retryOperation(() => rm(join(DATA_DIR, "recipes.db-wal"), { force: true }));
+  await retryOperation(() => rm(join(DATA_DIR, "recipes.db-shm"), { force: true }));
+  await retryOperation(() => rm(join(DATA_DIR, "recipes.db-journal"), { force: true }));
 }
 
 export async function listBackups(): Promise<BackupFile[]> {
@@ -159,9 +194,8 @@ export async function restoreBackup(key: string): Promise<void> {
 
   const archivePath = join(tmpdir(), `restore-${Date.now()}.tar.gz`);
   const extractDir = join(tmpdir(), `restore-extract-${Date.now()}`);
-  const parentDir = dirname(DATA_DIR);
-  const currentDirName = basename(DATA_DIR);
-  const rollbackDir = join(parentDir, `${currentDirName}.restore-rollback-${Date.now()}`);
+  const rollbackArchivePath = join(tmpdir(), `restore-rollback-${Date.now()}.tar.gz`);
+  let disconnected = false;
 
   try {
     const response = await s3.send(
@@ -179,27 +213,30 @@ export async function restoreBackup(key: string): Promise<void> {
     await mkdir(extractDir, { recursive: true });
     await execFileAsync("tar", ["xzf", archivePath, "-C", extractDir]);
     await stat(join(extractDir, "recipes.db"));
+    await createLocalArchive(rollbackArchivePath);
 
     await db.$disconnect();
+    disconnected = true;
 
-    await rename(DATA_DIR, rollbackDir);
     await mkdir(DATA_DIR, { recursive: true });
+    await clearDataDir();
 
     try {
       await execFileAsync("tar", ["xzf", archivePath, "-C", DATA_DIR]);
       await stat(join(DATA_DIR, "recipes.db"));
-      await rm(rollbackDir, { recursive: true, force: true });
     } catch (error) {
-      await rm(DATA_DIR, { recursive: true, force: true }).catch(() => {});
-      await rename(rollbackDir, DATA_DIR).catch(() => {});
+      await clearDataDir().catch(() => {});
+      await execFileAsync("tar", ["xzf", rollbackArchivePath, "-C", DATA_DIR]).catch(() => {});
       throw error;
     }
-
-    await db.$connect();
   } catch (error) {
     throw new Error("Restore failed.", { cause: error });
   } finally {
+    if (disconnected) {
+      await db.$connect().catch(() => {});
+    }
     await unlink(archivePath).catch(() => {});
+    await unlink(rollbackArchivePath).catch(() => {});
     await rm(extractDir, { recursive: true, force: true }).catch(() => {});
   }
 }

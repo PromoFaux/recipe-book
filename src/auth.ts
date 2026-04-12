@@ -9,6 +9,29 @@ const allowedEmails = (process.env.ALLOWED_EMAILS ?? "")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
+async function resolveSessionUser(token: { sub?: string | null; email?: string | null; name?: string | null; picture?: string | null }) {
+  if (token.sub) {
+    const existingById = await db.user.findUnique({ where: { id: token.sub } });
+    if (existingById) return existingById;
+  }
+
+  const email = token.email?.toLowerCase().trim();
+  if (!email) return null;
+
+  return db.user.upsert({
+    where: { email },
+    update: {
+      name: token.name ?? undefined,
+      image: token.picture ?? undefined,
+    },
+    create: {
+      email,
+      name: token.name ?? undefined,
+      image: token.picture ?? undefined,
+    },
+  });
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(db),
@@ -32,6 +55,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user?.id) {
         token.sub = user.id;
       }
+
+      const resolvedUser = await resolveSessionUser({
+        sub: token.sub,
+        email: token.email,
+        name: token.name,
+        picture: token.picture,
+      });
+
+      if (resolvedUser) {
+        token.sub = resolvedUser.id;
+      }
+
       return token;
     },
     async session({ session, token }) {

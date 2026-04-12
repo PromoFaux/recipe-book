@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { parseIngredientLine } from "@/lib/ingredient-parser";
 
 // ---------------------------------------------------------------------------
 // JSON-LD recipe extractor
@@ -155,7 +156,7 @@ export async function POST(req: NextRequest) {
   if (Array.isArray(rawIngredients)) {
     for (const ing of rawIngredients) {
       const text = extractText(ing);
-      if (text) ingredients.push({ name: text, amount: "", unit: "" });
+      if (text) ingredients.push(parseIngredientLine(text));
     }
   }
 
