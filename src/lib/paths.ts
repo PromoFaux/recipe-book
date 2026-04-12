@@ -11,7 +11,6 @@ function getDataDir(): string {
     return dirname(resolve(url.replace("file:", "")));
   }
   // Fallback for local dev when DATABASE_URL is not set
-  // turbopackIgnore: process.cwd() must not be statically evaluated by the bundler
   return resolve(join(/*turbopackIgnore: true*/ process.cwd(), "data"));
 }
 

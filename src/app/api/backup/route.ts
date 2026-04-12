@@ -43,7 +43,7 @@ export async function POST() {
   } catch (err) {
     console.error("Archive error:", err);
     await unlink(archivePath).catch(() => {});
-    return NextResponse.json({ error: "Failed to create backup archive." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create backup archive. Check server logs for details." }, { status: 500 });
   }
 
   try {
@@ -55,7 +55,7 @@ export async function POST() {
 
     const drive = google.drive({ version: "v3", auth });
 
-    // Reuse the existing backup file on Drive if one exists (saves quota)
+    // Update the most recent backup file in-place to avoid accumulating duplicates in Drive
     const existing = await drive.files.list({
       q: `name contains 'recipes-backup' and '${DRIVE_FOLDER_ID}' in parents and trashed = false`,
       orderBy: "createdTime desc",
