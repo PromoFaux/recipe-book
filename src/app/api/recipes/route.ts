@@ -18,7 +18,7 @@ const recipeSchema = z.object({
   servings: z.number().int().positive().optional(),
   prepTime: z.number().int().nonnegative().optional(),
   cookTime: z.number().int().nonnegative().optional(),
-  sourceUrl: z.string().url().optional().or(z.literal("")),
+  sourceUrl: z.union([z.string().url(), z.literal("")]).optional(),
   ingredients: z.array(ingredientSchema),
   tags: z.array(z.string()),
 });

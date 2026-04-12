@@ -22,19 +22,19 @@ import Image from "next/image";
 // ---------------------------------------------------------------------------
 const ingredientSchema = z.object({
   name: z.string().min(1, "Required"),
-  amount: z.string().optional().default(""),
-  unit: z.string().optional().default(""),
-  notes: z.string().optional().default(""),
+  amount: z.string().default(""),
+  unit: z.string().default(""),
+  notes: z.string().default(""),
   order: z.number().default(0),
 });
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  description: z.string().optional().default(""),
+  description: z.string().default(""),
   prepTime: z.coerce.number().int().nonnegative().optional().nullable(),
   cookTime: z.coerce.number().int().nonnegative().optional().nullable(),
   servings: z.coerce.number().int().positive().optional().nullable(),
-  sourceUrl: z.string().optional().default(""),
+  sourceUrl: z.string().default(""),
   instructions: z.array(z.object({ step: z.string() })),
   ingredients: z.array(ingredientSchema),
   tags: z.array(z.string()),
@@ -76,7 +76,7 @@ export function RecipeForm({
     setValue,
     watch,
     formState: { errors },
-  } = useForm<FormValues>({
+  } = useForm<z.input<typeof formSchema>, unknown, FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
