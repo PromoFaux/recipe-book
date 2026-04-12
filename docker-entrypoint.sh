@@ -9,13 +9,13 @@ node ./node_modules/prisma/build/index.js db push
 
 echo "Cleaning up orphaned tags..."
 node -e "
-const { PrismaClient } = require('@prisma/client');
-const { PrismaLibSql } = require('@prisma/adapter-libsql');
-const url = process.env.DATABASE_URL || 'file:./data/recipes.db';
-const db = new PrismaClient({ adapter: new PrismaLibSql({ url }) });
-db.tag.deleteMany({ where: { recipes: { none: {} } } })
-  .then(r => { console.log('Deleted ' + r.count + ' orphaned tag(s).'); return db.\$disconnect(); })
-  .catch(e => { console.error('Tag cleanup failed:', e); return db.\$disconnect(); });
+const { DatabaseSync } = require('node:sqlite');
+const url = process.env.DATABASE_URL || 'file:/app/data/recipes.db';
+const path = url.replace(/^file:/, '');
+const db = new DatabaseSync(path);
+const { changes } = db.prepare('DELETE FROM Tag WHERE id NOT IN (SELECT tagId FROM TagsOnRecipes)').run();
+console.log('Deleted ' + changes + ' orphaned tag(s).');
+db.close();
 "
 
 echo "Starting server..."
