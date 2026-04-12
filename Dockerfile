@@ -39,15 +39,14 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Copy Prisma schema, config, engine, and CLI for db push at startup
+# Copy Prisma schema and config for db push at startup
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-# Copy the Prisma CLI itself (devDep, not included in standalone output)
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-# Copy runtime deps of @prisma/config (used by Prisma CLI for db push)
-COPY --from=builder /app/node_modules/effect ./node_modules/effect
+# Copy full node_modules so the Prisma CLI has all transitive deps available.
+# Prisma v7 pulls in effect → fast-check → pure-rand etc. at CLI startup;
+# cherry-picking individual packages is fragile. The standalone output already
+# has the app's traced deps; this overwrites/merges with the full set.
+COPY --from=builder /app/node_modules ./node_modules
 
 # Startup script
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
