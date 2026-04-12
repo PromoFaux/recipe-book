@@ -95,6 +95,9 @@ export async function PUT(
     },
   });
 
+  // Clean up any tags that are no longer associated with any recipe
+  await db.tag.deleteMany({ where: { recipes: { none: {} } } });
+
   return NextResponse.json(updated);
 }
 
@@ -110,6 +113,9 @@ export async function DELETE(
   if (!recipe) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await db.recipe.delete({ where: { id } });
+
+  // Clean up any tags that are no longer associated with any recipe
+  await db.tag.deleteMany({ where: { recipes: { none: {} } } });
 
   // Remove uploaded photos from disk (best-effort — don't fail if already gone)
   await rm(join(UPLOADS_DIR, id), { recursive: true, force: true }).catch(() => {});
