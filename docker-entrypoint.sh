@@ -2,11 +2,10 @@
 set -e
 
 # Apply any schema changes to the database.
-# Uses the locally installed Prisma CLI (copied from builder stage) rather
-# than npx, which would download the latest version and risk a version mismatch.
-# This is a no-op if the schema is already up to date.
+# --skip-generate: client was already generated at build time, and the nextjs
+# user has no write access to node_modules at runtime anyway.
 echo "Applying database schema..."
-node ./node_modules/prisma/build/index.js db push
+node ./node_modules/prisma/build/index.js db push --skip-generate
 
 echo "Starting server..."
 exec node server.js
