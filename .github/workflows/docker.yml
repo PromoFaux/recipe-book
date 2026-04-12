@@ -10,18 +10,30 @@ permissions:
   contents: read
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.lower.outputs.image }}
+    steps:
+      - name: Lowercase image name
+        id: lower
+        run: echo "image=ghcr.io/${REPO,,}" >> $GITHUB_OUTPUT
+        env:
+          REPO: ${{ github.repository }}
+
   build:
+    needs: prepare
     uses: docker/github-builder/.github/workflows/build.yml@v1
     permissions:
       contents: read
-      id-token: write  # required for SLSA provenance signing
-      packages: write  # required to push to GHCR
+      id-token: write
+      packages: write
     with:
       output: image
       push: ${{ github.event_name != 'pull_request' }}
       platforms: linux/amd64,linux/arm64
       cache: true
-      meta-images: ghcr.io/${{ github.repository }}
+      meta-images: ${{ needs.prepare.outputs.image }}
       meta-tags: |
         type=raw,value=latest,enable={{is_default_branch}}
         type=sha,prefix=sha-
