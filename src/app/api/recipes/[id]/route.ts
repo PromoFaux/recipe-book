@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { UPLOADS_DIR } from "@/lib/paths";
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
 import { z } from "zod";
 
 const ingredientSchema = z.object({
@@ -107,5 +110,9 @@ export async function DELETE(
   if (!recipe) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await db.recipe.delete({ where: { id } });
+
+  // Remove uploaded photos from disk (best-effort — don't fail if already gone)
+  await rm(join(UPLOADS_DIR, id), { recursive: true, force: true }).catch(() => {});
+
   return new NextResponse(null, { status: 204 });
 }

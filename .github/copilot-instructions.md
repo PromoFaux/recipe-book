@@ -66,7 +66,7 @@ npm run dev                   # start dev server on http://localhost:3000
 │       │   │   └── [id]/
 │       │   │       ├── page.tsx   # Recipe detail view (includes Delete + Edit buttons)
 │       │   │       └── edit/page.tsx  # Edit recipe form
-│       │   └── settings/page.tsx  # User preferences (metric toggle, Google Drive backup)
+│       │   └── settings/page.tsx  # User preferences (metric toggle, R2 backup)
 │       ├── api/
 │       │   ├── auth/[...nextauth]/route.ts   # NextAuth route handlers
 │       │   ├── recipes/route.ts              # GET (list+search), POST (create)
@@ -74,7 +74,7 @@ npm run dev                   # start dev server on http://localhost:3000
 │       │   ├── tags/route.ts                 # GET all tags
 │       │   ├── upload/route.ts               # POST photo (Sharp resize+store as DB blob), DELETE photo
 │       │   ├── scrape/route.ts               # POST: extract recipe from URL via JSON-LD
-│       │   ├── backup/route.ts               # POST: backup SQLite to Google Drive
+│       │   ├── backup/route.ts               # POST: backup data dir to Cloudflare R2
 │       │   └── user/preferences/route.ts     # PUT: toggle preferMetric
 │       └── uploads/[...path]/route.ts        # Serve photos from DB blob (authenticated, cached)
 └── public/sw.js                   # Minimal service worker for PWA install prompt
@@ -100,8 +100,10 @@ npm run dev                   # start dev server on http://localhost:3000
 | `AUTH_GOOGLE_ID` | Yes | Google OAuth client ID |
 | `AUTH_GOOGLE_SECRET` | Yes | Google OAuth client secret |
 | `ALLOWED_EMAILS` | Yes | Comma-separated Google emails allowed to log in |
-| `GOOGLE_DRIVE_BACKUP_FOLDER_ID` | No | Google Drive folder for DB backups |
-| `GOOGLE_SERVICE_ACCOUNT_KEY` | No | GCP service account JSON for Drive API |
+| `R2_ENDPOINT` | No | Cloudflare R2 S3-compatible endpoint URL |
+| `R2_ACCESS_KEY_ID` | No | R2 API token access key ID |
+| `R2_SECRET_ACCESS_KEY` | No | R2 API token secret access key |
+| `R2_BUCKET_NAME` | No | R2 bucket name for backups |
 
 ## CI Pipeline
 
