@@ -31,5 +31,8 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-tsconfig.tsbuildinfo
+# TypeScript build info and declaration files
+*.tsbuildinfo
+*.d.ts
+
 .claude/settings.local.json
