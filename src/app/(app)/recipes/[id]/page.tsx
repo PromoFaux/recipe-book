@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDuration } from "@/lib/utils";
 import { Clock, Users, ExternalLink, Pencil, ChevronLeft } from "lucide-react";
 import { IngredientsPanel } from "./ingredients-panel";
+import { DeleteRecipeButton } from "@/components/delete-recipe-button";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -41,12 +42,15 @@ export default async function RecipePage({ params }: PageProps) {
         <Link href="/" className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
           <ChevronLeft size={16} /> All recipes
         </Link>
-        <Link
-          href={`/recipes/${id}/edit`}
-          className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
-        >
-          <Pencil size={14} /> Edit
-        </Link>
+        <div className="flex items-center gap-2">
+          <DeleteRecipeButton id={id} title={recipe.title} />
+          <Link
+            href={`/recipes/${id}/edit`}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+          >
+            <Pencil size={14} /> Edit
+          </Link>
+        </div>
       </div>
 
       {/* Cover photo */}
