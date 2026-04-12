@@ -1,0 +1,38 @@
+# Version control
+.git/
+.gitignore
+
+# Dependencies (re-installed inside the image)
+node_modules/
+
+# Next.js build output (rebuilt inside the image)
+.next/
+out/
+build/
+
+# Local data (never ship the DB into an image)
+data/
+
+# Environment files (secrets must not be baked in)
+.env
+.env.local
+.env.*.local
+
+# Prisma generated migrations (applied at runtime via db push)
+prisma/migrations/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# CI / GitHub Actions
+.github/
+
+# Docs / misc
+*.md
