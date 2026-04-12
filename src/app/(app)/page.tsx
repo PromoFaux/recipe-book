@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { RecipeCard } from "@/components/recipe-card";
+import { RecipesView } from "@/components/recipes-view";
 import Link from "next/link";
 import { Plus, Search } from "lucide-react";
 
@@ -24,7 +24,10 @@ export default async function HomePage({ searchParams }: PageProps) {
         tag ? { tags: { some: { tag: { name: tag } } } } : {},
       ],
     },
-    include: {
+    select: {
+      id: true, title: true, description: true,
+      prepTime: true, cookTime: true, servings: true,
+      updatedAt: true,
       photos: { orderBy: { order: "asc" }, take: 1 },
       tags: { include: { tag: true } },
       createdBy: { select: { name: true, image: true } },
@@ -93,7 +96,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {/* Grid */}
+      {/* Recipes */}
       {recipes.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
           <div className="text-5xl mb-4">🍽️</div>
@@ -103,11 +106,7 @@ export default async function HomePage({ searchParams }: PageProps) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {recipes.map((recipe) => (
-            <RecipeCard key={recipe.id} {...recipe} />
-          ))}
-        </div>
+        <RecipesView recipes={recipes} />
       )}
     </div>
   );
