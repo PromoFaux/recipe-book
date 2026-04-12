@@ -11,8 +11,10 @@ const allowedEmails = (process.env.ALLOWED_EMAILS ?? "")
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
   providers: [
-    // Auth.js v5 automatically reads AUTH_GOOGLE_ID + AUTH_GOOGLE_SECRET
-    Google(),
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID!,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+    }),
   ],
   callbacks: {
     async signIn({ user }) {

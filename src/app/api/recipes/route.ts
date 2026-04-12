@@ -34,11 +34,12 @@ export async function GET(req: NextRequest) {
   const recipes = await db.recipe.findMany({
     where: {
       AND: [
+        // SQLite LIKE is case-insensitive for ASCII by default — no mode needed
         query
           ? {
               OR: [
-                { title: { contains: query, mode: "insensitive" } },
-                { description: { contains: query, mode: "insensitive" } },
+                { title: { contains: query } },
+                { description: { contains: query } },
               ],
             }
           : {},

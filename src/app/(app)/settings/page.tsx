@@ -8,10 +8,18 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { HardDriveUpload } from "lucide-react";
 
+// Extend the session user type to include our custom field
+interface SessionUser {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  preferMetric?: boolean;
+}
+
 export default function SettingsPage() {
   const { data: session, update } = useSession();
-  const preferMetric =
-    (session?.user as (typeof session.user & { preferMetric?: boolean }) | null)?.preferMetric ?? false;
+  const user = session?.user as SessionUser | undefined;
+  const preferMetric = user?.preferMetric ?? false;
 
   const [metric, setMetric] = useState(preferMetric);
   const [savingPref, setSavingPref] = useState(false);
@@ -69,10 +77,10 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-2">
           <p className="text-sm text-gray-700">
-            <span className="font-medium">Name:</span> {session?.user?.name ?? "—"}
+            <span className="font-medium">Name:</span> {user?.name ?? "—"}
           </p>
           <p className="text-sm text-gray-700">
-            <span className="font-medium">Email:</span> {session?.user?.email ?? "—"}
+            <span className="font-medium">Email:</span> {user?.email ?? "—"}
           </p>
         </CardContent>
       </Card>
