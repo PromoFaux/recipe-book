@@ -10,6 +10,15 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#fef7ee",
     theme_color: "#ed7519",
     orientation: "portrait",
+    share_target: {
+      action: "/recipes/new",
+      method: "GET",
+      params: {
+        url: "share_url",
+        title: "share_title",
+        text: "share_text",
+      },
+    },
     icons: [
       {
         src: "/icon",

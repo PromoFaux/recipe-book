@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -51,6 +51,7 @@ interface RecipeFormProps {
   existingPhotos?: { id: string; filename: string; recipeId: string }[];
   allTags?: string[];
   mode: "create" | "edit";
+  initialImportUrl?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -62,12 +63,16 @@ export function RecipeForm({
   existingPhotos = [],
   allTags = [],
   mode,
+  initialImportUrl = "",
 }: RecipeFormProps) {
   const router = useRouter();
   const [scrapeOpen, setScrapeOpen] = useState(false);
   const [photos, setPhotos] = useState(existingPhotos);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [sharedImportStatus, setSharedImportStatus] = useState<"idle" | "importing" | "success" | "error">("idle");
+  const [sharedImportMessage, setSharedImportMessage] = useState("");
+  const didAutoImportRef = useRef(false);
 
   const {
     register,
@@ -165,6 +170,43 @@ export function RecipeForm({
     toast.success("Recipe imported! Check the details and save.");
   };
 
+  useEffect(() => {
+    const importFromSharedUrl = async () => {
+      const url = initialImportUrl.trim();
+      if (!url || mode !== "create" || didAutoImportRef.current) return;
+      didAutoImportRef.current = true;
+      setValue("sourceUrl", url);
+      setSharedImportStatus("importing");
+      setSharedImportMessage("Shared link received. Importing recipe details...");
+
+      try {
+        const res = await fetch("/api/scrape", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          setSharedImportStatus("error");
+          setSharedImportMessage(data.error ?? "Could not import from shared link.");
+          toast.error(data.error ?? "Could not import from shared link.");
+          return;
+        }
+
+        handleImport(data);
+        setSharedImportStatus("success");
+        setSharedImportMessage("Shared link imported. Review details and save.");
+      } catch {
+        setSharedImportStatus("error");
+        setSharedImportMessage("Network error while importing shared link.");
+        toast.error("Network error while importing shared link.");
+      }
+    };
+
+    void importFromSharedUrl();
+  }, [initialImportUrl, mode, setValue]);
+
   // -------------------------------------------------------------------------
   // Submit
   // -------------------------------------------------------------------------
@@ -211,6 +253,20 @@ export function RecipeForm({
       <ScrapeDialog open={scrapeOpen} onClose={() => setScrapeOpen(false)} onImport={handleImport} />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        {sharedImportStatus !== "idle" && (
+          <div
+            className={`rounded-lg px-4 py-3 text-sm ${
+              sharedImportStatus === "importing"
+                ? "bg-blue-50 text-blue-800"
+                : sharedImportStatus === "success"
+                ? "bg-emerald-50 text-emerald-800"
+                : "bg-red-50 text-red-700"
+            }`}
+          >
+            {sharedImportMessage}
+          </div>
+        )}
+
         {/* Import button */}
         <div className="flex justify-end">
           <Button type="button" variant="outline" size="sm" onClick={() => setScrapeOpen(true)}>
