@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { generateAndSaveRecipeImage } from "@/lib/gemini";
 import { z } from "zod";
 
 const ingredientSchema = z.object({
@@ -94,6 +95,16 @@ export async function POST(req: NextRequest) {
       photos: true,
     },
   });
+
+  // Generate an AI image in the background if no photo was provided
+  after(() =>
+    generateAndSaveRecipeImage(
+      recipe.id,
+      recipe.title,
+      recipe.description,
+      recipe.ingredients
+    )
+  );
 
   return NextResponse.json(recipe, { status: 201 });
 }
