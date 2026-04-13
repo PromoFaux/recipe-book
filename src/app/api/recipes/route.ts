@@ -96,15 +96,17 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Generate an AI image in the background if no photo was provided
-  after(() =>
-    generateAndSaveRecipeImage(
-      recipe.id,
-      recipe.title,
-      recipe.description,
-      recipe.ingredients
-    )
-  );
+  // Generate an AI image in the background when no photo was uploaded
+  if (recipe.photos.length === 0) {
+    after(() =>
+      generateAndSaveRecipeImage(
+        recipe.id,
+        recipe.title,
+        recipe.description,
+        recipe.ingredients
+      )
+    );
+  }
 
   return NextResponse.json(recipe, { status: 201 });
 }
