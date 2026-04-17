@@ -14,18 +14,47 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const formData = await req.formData();
-  const file = formData.get("file") as File | null;
-  const recipeId = formData.get("recipeId") as string | null;
+  let buffer: Buffer;
+  let recipeId: string | null;
 
-  if (!file) return NextResponse.json({ error: "No file" }, { status: 400 });
-  if (!recipeId) return NextResponse.json({ error: "No recipeId" }, { status: 400 });
+  const contentType = req.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    // Fetch image from a remote URL (e.g. scraped recipe image)
+    const body = await req.json() as { recipeId?: string; imageUrl?: string };
+    recipeId = body.recipeId ?? null;
+    const imageUrl = body.imageUrl ?? null;
+
+    if (!recipeId) return NextResponse.json({ error: "No recipeId" }, { status: 400 });
+    if (!imageUrl) return NextResponse.json({ error: "No imageUrl" }, { status: 400 });
+
+    let fetchRes: Response;
+    try {
+      fetchRes = await fetch(imageUrl, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; RecipeBook/1.0)" },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!fetchRes.ok) throw new Error(`HTTP ${fetchRes.status}`);
+    } catch (err) {
+      console.error("[upload] Failed to fetch image URL:", err);
+      return NextResponse.json({ error: "Could not fetch image from URL" }, { status: 422 });
+    }
+    buffer = Buffer.from(await fetchRes.arrayBuffer());
+  } else {
+    // Standard multipart file upload
+    const formData = await req.formData();
+    const file = formData.get("file") as File | null;
+    recipeId = formData.get("recipeId") as string | null;
+
+    if (!file) return NextResponse.json({ error: "No file" }, { status: 400 });
+    if (!recipeId) return NextResponse.json({ error: "No recipeId" }, { status: 400 });
+
+    buffer = Buffer.from(await file.arrayBuffer());
+  }
 
   // Verify recipe exists
   const recipe = await db.recipe.findUnique({ where: { id: recipeId } });
   if (!recipe) return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
-
-  const buffer = Buffer.from(await file.arrayBuffer());
   const filename = `${randomUUID()}.jpg`;
 
   // Compress & resize with Sharp
