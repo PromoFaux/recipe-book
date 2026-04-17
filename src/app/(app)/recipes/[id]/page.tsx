@@ -8,6 +8,7 @@ import { formatDuration } from "@/lib/utils";
 import { Clock, Users, ExternalLink, Pencil, ChevronLeft } from "lucide-react";
 import { IngredientsPanel } from "./ingredients-panel";
 import { DeleteRecipeButton } from "@/components/delete-recipe-button";
+import { CollectionManager } from "@/components/collection-manager";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -152,6 +153,9 @@ export default async function RecipePage({ params }: PageProps) {
 
       {/* Ingredients — client component for metric toggle */}
       <IngredientsPanel ingredients={recipe.ingredients} defaultMetric={preferMetric} />
+
+      {/* Collections */}
+      <CollectionManager recipeId={id} />
 
       {/* Instructions */}
       {instructions.length > 0 && (

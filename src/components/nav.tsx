@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { BookOpen, Plus, Settings, LogOut, Menu, X } from "lucide-react";
+import { BookOpen, Plus, Settings, LogOut, Menu, X, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import Image from "next/image";
@@ -18,6 +18,7 @@ export function Nav({ user }: NavProps) {
 
   const links = [
     { href: "/", label: "Recipes", icon: BookOpen },
+    { href: "/collections", label: "Collections", icon: FolderOpen },
     { href: "/recipes/new", label: "Add Recipe", icon: Plus },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
@@ -34,21 +35,24 @@ export function Nav({ user }: NavProps) {
 
           {/* Desktop nav */}
           <nav className="hidden sm:flex items-center gap-1">
-            {links.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  pathname === href
-                    ? "bg-brand-50 text-brand-700"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                )}
-              >
-                <Icon size={16} />
-                {label}
-              </Link>
-            ))}
+            {links.map(({ href, label, icon: Icon }) => {
+              const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-brand-50 text-brand-700"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  )}
+                >
+                  <Icon size={16} />
+                  {label}
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -90,22 +94,25 @@ export function Nav({ user }: NavProps) {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="sm:hidden border-t border-gray-100 bg-white px-4 py-3 flex flex-col gap-1">
-          {links.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setMenuOpen(false)}
-              className={cn(
-                "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium",
-                pathname === href
-                  ? "bg-brand-50 text-brand-700"
-                  : "text-gray-700 hover:bg-gray-100"
-              )}
-            >
-              <Icon size={18} />
-              {label}
-            </Link>
-          ))}
+          {links.map(({ href, label, icon: Icon }) => {
+            const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMenuOpen(false)}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium",
+                  isActive
+                    ? "bg-brand-50 text-brand-700"
+                    : "text-gray-700 hover:bg-gray-100"
+                )}
+              >
+                <Icon size={18} />
+                {label}
+              </Link>
+            );
+          })}
           <button
             onClick={() => signOut()}
             className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 text-left"
