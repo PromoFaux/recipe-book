@@ -73,6 +73,7 @@ export function RecipeForm({
   const [scrapeOpen, setScrapeOpen] = useState(false);
   const [photos, setPhotos] = useState(existingPhotos);
   const [pendingFiles, setPendingFiles] = useState<{ file: File; previewUrl: string }[]>([]);
+  const [scrapeImageUrl, setScrapeImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sharedImportStatus, setSharedImportStatus] = useState<"idle" | "importing" | "success" | "error">("idle");
@@ -180,6 +181,7 @@ export function RecipeForm({
     if (data.cookTime) setValue("cookTime", data.cookTime as number);
     if (data.servings) setValue("servings", data.servings as number);
     if (data.sourceUrl) setValue("sourceUrl", data.sourceUrl as string);
+    if (data.imageUrl && typeof data.imageUrl === "string") setScrapeImageUrl(data.imageUrl);
     if (Array.isArray(data.instructions) && data.instructions.length > 0) {
       setValue("instructions", (data.instructions as string[]).map((s) => ({ step: s })));
     }
@@ -189,7 +191,11 @@ export function RecipeForm({
       );
       setValue("ingredients", ings);
     }
-    toast.success("Recipe imported! Check the details and save.");
+    if (data.partial) {
+      toast("Partial import — title and image filled in. Add ingredients and steps manually.", { icon: "⚠️" });
+    } else {
+      toast.success("Recipe imported! Check the details and save.");
+    }
   };
 
   useEffect(() => {
@@ -221,7 +227,11 @@ export function RecipeForm({
 
         handleImport(data);
         setSharedImportStatus("success");
-        setSharedImportMessage("Shared link imported. Review details and save.");
+        setSharedImportMessage(
+          data.partial
+            ? "Partial import — title and image pre-filled. Add ingredients and steps manually."
+            : "Shared link imported. Review details and save."
+        );
       } catch {
         setSharedImportStatus("error");
         setSharedImportMessage("Network error while importing shared link.");
@@ -244,8 +254,6 @@ export function RecipeForm({
         ingredients: values.ingredients
           .filter((i) => i.name.trim())
           .map((i, idx) => ({ ...i, order: idx })),
-        // Skip AI image generation when the user is providing their own photos
-        skipAiImage: mode === "create" && pendingFiles.length > 0,
       };
 
       const url = mode === "edit" ? `/api/recipes/${recipeId}` : "/api/recipes";
@@ -277,6 +285,19 @@ export function RecipeForm({
             toast.error("Failed to upload a photo.");
           }
           URL.revokeObjectURL(previewUrl);
+        }
+        setUploading(false);
+      } else if (mode === "create" && scrapeImageUrl) {
+        // Save the image scraped from the recipe's source site
+        setUploading(true);
+        try {
+          await fetch("/api/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ recipeId: saved.id, imageUrl: scrapeImageUrl }),
+          });
+        } catch {
+          // best-effort — a missing image is not a fatal error
         }
         setUploading(false);
       }

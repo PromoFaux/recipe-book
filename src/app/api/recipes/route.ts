@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse, after } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { generateAndSaveRecipeImage } from "@/lib/gemini";
 import { z } from "zod";
 
 const ingredientSchema = z.object({
@@ -22,7 +21,6 @@ const recipeSchema = z.object({
   sourceUrl: z.union([z.string().url(), z.literal("")]).optional(),
   ingredients: z.array(ingredientSchema),
   tags: z.array(z.string()),
-  skipAiImage: z.boolean().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -69,7 +67,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { ingredients, tags, instructions, skipAiImage, ...rest } = parsed.data;
+  const { ingredients, tags, instructions, ...rest } = parsed.data;
 
   // Upsert tags
   const tagRecords = await Promise.all(
@@ -96,18 +94,6 @@ export async function POST(req: NextRequest) {
       photos: true,
     },
   });
-
-  // Generate an AI image in the background when no photo was uploaded
-  if (recipe.photos.length === 0 && !skipAiImage) {
-    after(() =>
-      generateAndSaveRecipeImage(
-        recipe.id,
-        recipe.title,
-        recipe.description,
-        recipe.ingredients
-      )
-    );
-  }
 
   return NextResponse.json(recipe, { status: 201 });
 }
