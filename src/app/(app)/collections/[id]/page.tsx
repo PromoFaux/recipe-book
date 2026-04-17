@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { RecipesView } from "@/components/recipes-view";
 import { ChevronLeft } from "lucide-react";
 import { EditCollectionControls } from "./edit-collection-controls";
+import { CollectionRecipesManager } from "@/components/collection-recipes-manager";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -30,7 +30,6 @@ export default async function CollectionPage({ params }: PageProps) {
         },
         orderBy: { addedAt: "asc" },
       },
-      _count: { select: { recipes: true } },
     },
   });
 
@@ -55,25 +54,12 @@ export default async function CollectionPage({ params }: PageProps) {
           {collection.description && (
             <p className="mt-1 text-gray-500">{collection.description}</p>
           )}
-          <p className="text-sm text-gray-400 mt-1">
-            {collection._count.recipes} recipe{collection._count.recipes !== 1 ? "s" : ""}
-          </p>
         </div>
         <EditCollectionControls id={id} name={collection.name} description={collection.description} />
       </div>
 
-      {/* Recipes */}
-      {recipes.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">
-          <div className="text-5xl mb-4">📭</div>
-          <p className="font-medium text-gray-700">No recipes in this collection yet</p>
-          <p className="text-sm mt-1">
-            Open any recipe and use the Collections section to add it here.
-          </p>
-        </div>
-      ) : (
-        <RecipesView recipes={recipes} />
-      )}
+      {/* Recipes — client-managed so add/remove works without full page reload */}
+      <CollectionRecipesManager collectionId={id} initialRecipes={recipes} />
     </div>
   );
 }
