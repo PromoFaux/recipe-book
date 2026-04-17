@@ -72,6 +72,7 @@ export function RecipeForm({
   const router = useRouter();
   const [scrapeOpen, setScrapeOpen] = useState(false);
   const [photos, setPhotos] = useState(existingPhotos);
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; previewUrl: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sharedImportStatus, setSharedImportStatus] = useState<"idle" | "importing" | "success" | "error">("idle");
@@ -117,19 +118,24 @@ export function RecipeForm({
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files ?? []);
       if (!files.length) return;
-      if (!recipeId && mode === "edit") return;
 
-      // For new recipes, we need to save first — handled below in onSubmit
       if (mode === "create") {
-        toast.info("Save the recipe first, then add photos.");
+        // Queue photos locally; they will be uploaded after the recipe is saved
+        setPendingFiles((prev) => [
+          ...prev,
+          ...files.map((file) => ({ file, previewUrl: URL.createObjectURL(file) })),
+        ]);
+        e.target.value = "";
         return;
       }
+
+      if (!recipeId) return;
 
       setUploading(true);
       for (const file of files) {
         const fd = new FormData();
         fd.append("file", file);
-        fd.append("recipeId", recipeId!);
+        fd.append("recipeId", recipeId);
         try {
           const res = await fetch("/api/upload", { method: "POST", body: fd });
           if (res.ok) {
@@ -147,6 +153,13 @@ export function RecipeForm({
     },
     [recipeId, mode]
   );
+
+  const removePendingFile = useCallback((index: number) => {
+    setPendingFiles((prev) => {
+      URL.revokeObjectURL(prev[index].previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+  }, []);
 
   const deletePhoto = async (photoId: string) => {
     const res = await fetch(`/api/upload?id=${photoId}`, { method: "DELETE" });
@@ -231,6 +244,8 @@ export function RecipeForm({
         ingredients: values.ingredients
           .filter((i) => i.name.trim())
           .map((i, idx) => ({ ...i, order: idx })),
+        // Skip AI image generation when the user is providing their own photos
+        skipAiImage: mode === "create" && pendingFiles.length > 0,
       };
 
       const url = mode === "edit" ? `/api/recipes/${recipeId}` : "/api/recipes";
@@ -248,6 +263,24 @@ export function RecipeForm({
       }
 
       const saved = await res.json();
+
+      // Upload any photos that were queued before the recipe existed
+      if (mode === "create" && pendingFiles.length > 0) {
+        setUploading(true);
+        for (const { file, previewUrl } of pendingFiles) {
+          const fd = new FormData();
+          fd.append("file", file);
+          fd.append("recipeId", saved.id);
+          try {
+            await fetch("/api/upload", { method: "POST", body: fd });
+          } catch {
+            toast.error("Failed to upload a photo.");
+          }
+          URL.revokeObjectURL(previewUrl);
+        }
+        setUploading(false);
+      }
+
       toast.success(mode === "edit" ? "Recipe updated!" : "Recipe created!");
       router.push(`/recipes/${saved.id}`);
     } catch {
@@ -458,53 +491,65 @@ export function RecipeForm({
         </section>
 
         {/* ── Photos ───────────────────────────────────────────────── */}
-        {mode === "edit" && (
-          <section className="space-y-3">
-            <h2 className="font-semibold text-gray-900">Photos</h2>
+        <section className="space-y-3">
+          <h2 className="font-semibold text-gray-900">Photos</h2>
 
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-              {photos.map((photo) => (
-                <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden group">
-                  <Image
-                    src={`/uploads/${photo.recipeId}/${photo.filename}`}
-                    alt="Recipe photo"
-                    fill
-                    unoptimized
-                    className="object-cover"
-                    sizes="150px"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => deletePhoto(photo.id)}
-                    className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
-
-              <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-brand-400 flex flex-col items-center justify-center gap-1 cursor-pointer text-gray-400 hover:text-brand-500 transition-colors">
-                <Upload size={20} />
-                <span className="text-xs">Upload</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                  disabled={uploading}
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            {/* Saved photos (edit mode) */}
+            {photos.map((photo) => (
+              <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden group">
+                <Image
+                  src={`/uploads/${photo.recipeId}/${photo.filename}`}
+                  alt="Recipe photo"
+                  fill
+                  unoptimized
+                  className="object-cover"
+                  sizes="150px"
                 />
-              </label>
-            </div>
-            {uploading && <p className="text-sm text-gray-500">Uploading…</p>}
-          </section>
-        )}
+                <button
+                  type="button"
+                  onClick={() => deletePhoto(photo.id)}
+                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
 
-        {mode === "create" && (
-          <p className="text-sm text-gray-500 bg-amber-50 rounded-lg px-4 py-3">
-            💡 Photos can be added after saving the recipe.
-          </p>
-        )}
+            {/* Pending photos (create mode) */}
+            {pendingFiles.map(({ previewUrl }, index) => (
+              <div key={previewUrl} className="relative aspect-square rounded-lg overflow-hidden group">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt="Pending photo"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removePendingFile(index)}
+                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+
+            <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-brand-400 flex flex-col items-center justify-center gap-1 cursor-pointer text-gray-400 hover:text-brand-500 transition-colors">
+              <Upload size={20} />
+              <span className="text-xs">Upload</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handlePhotoUpload}
+                disabled={uploading}
+              />
+            </label>
+          </div>
+          {uploading && <p className="text-sm text-gray-500">Uploading…</p>}
+        </section>
 
         {/* ── Actions ──────────────────────────────────────────────── */}
         <div className="flex gap-3 justify-end pt-4 border-t border-gray-100">

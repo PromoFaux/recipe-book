@@ -5,7 +5,7 @@ import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const GEMINI_IMAGE_MODEL = "gemini-2.0-flash-preview-image-generation";
+const GEMINI_IMAGE_MODEL = "gemini-2.0-flash-exp";
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 type GeminiPart =

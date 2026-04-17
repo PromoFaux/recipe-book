@@ -22,6 +22,7 @@ const recipeSchema = z.object({
   sourceUrl: z.union([z.string().url(), z.literal("")]).optional(),
   ingredients: z.array(ingredientSchema),
   tags: z.array(z.string()),
+  skipAiImage: z.boolean().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { ingredients, tags, instructions, ...rest } = parsed.data;
+  const { ingredients, tags, instructions, skipAiImage, ...rest } = parsed.data;
 
   // Upsert tags
   const tagRecords = await Promise.all(
@@ -97,7 +98,7 @@ export async function POST(req: NextRequest) {
   });
 
   // Generate an AI image in the background when no photo was uploaded
-  if (recipe.photos.length === 0) {
+  if (recipe.photos.length === 0 && !skipAiImage) {
     after(() =>
       generateAndSaveRecipeImage(
         recipe.id,
