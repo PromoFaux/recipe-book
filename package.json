@@ -16,7 +16,7 @@
     "@auth/prisma-adapter": "^2.7.2",
     "@aws-sdk/client-s3": "^3.1029.0",
     "@hookform/resolvers": "^5.0.0",
-    "@libsql/client": "^0.17.2",
+    "@libsql/client": "^0.17.3",
     "@prisma/adapter-libsql": "^7.7.0",
     "@prisma/client": "^7.0.0",
     "clsx": "^2.1.1",
